@@ -51,7 +51,7 @@ class JackTokenizer(object):
 
 	def stringVal(self):
 		return self.token[1:-1]
-		
+'''		
 j=JackTokenizer('inp.jack')
 while(j.hasMoreTokens()):
 	j.advance()
@@ -60,7 +60,7 @@ while(j.hasMoreTokens()):
 		print j.intVal()
 	elif j.tokenType()=='STRING_CONST':
 		print j.stringVal()
-
+'''
 
 		
 
