@@ -17,29 +17,28 @@ class SymbolTable:
           if 'class' in values:
             return key
 
-
       def Define(self, name, type, kind):
-        if kind == 'STATIC':
-            self.class_scope[name] = (type, 'STATIC' , self.static_count)
+        if kind == 'static':
+            self.class_scope[name] = (type, 'static' , self.static_count)
             self.static_count += 1
-        elif kind == 'FIELD':
-            self.class_scope[name] = (type, 'FIELD' , self.field_count)
+        elif kind == 'field':
+            self.class_scope[name] = (type, 'field' , self.field_count)
             self.field_count += 1
-        elif kind == 'ARG':
-            self.subroutine_scope[name] = (type, 'ARG' , self.arg_count)
+        elif kind == 'argument':
+            self.subroutine_scope[name] = (type, 'argument' , self.arg_count)
             self.arg_count += 1
-        elif kind == 'VAR':
-            self.subroutine_scope[name] = (type, 'VAR' , self.var_count)
+        elif kind == 'local':
+            self.subroutine_scope[name] = (type, 'local' , self.var_count)
             self.var_count += 1
 
       def VarCount(self, kind):
-        if kind == 'ARG':
+        if kind == 'argument':
             return self.arg_count
-        elif kind == 'VAR':
+        elif kind == 'local':
             return self.var_count
-        elif kind == 'STATIC':
+        elif kind == 'static':
             return self.static_count
-        elif kind == 'FIELD':
+        elif kind == 'field':
             return self.field_count
         else:
             return None
