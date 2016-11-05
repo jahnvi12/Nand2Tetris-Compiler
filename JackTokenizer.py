@@ -32,7 +32,7 @@ class JackTokenizer(object):
 			return 'INT_CONST'
 		elif re.match(r'(?:"[^"]*")',self.token):
 			return 'STRING_CONST'
-		elif re.match(r'^[\w\d_]*$',self.token) and not self.token[0].isdigit():
+		elif re.match(r'^[\w\d_]*$',self.token) and not self.token[0].isdigit() and self.token not in keywords:
 			return 'IDENTIFIER'
 		else:
 			raise Exception('Illegal Token: %s'%self.token)
@@ -60,8 +60,8 @@ while(j.hasMoreTokens()):
 		print j.intVal()
 	elif j.tokenType()=='STRING_CONST':
 		print j.stringVal()
-'''
 
+'''
 		
 
 

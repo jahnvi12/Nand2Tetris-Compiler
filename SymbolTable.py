@@ -12,6 +12,12 @@ class SymbolTable:
         self.arg_count = 0
         self.var_count = 0
 
+      def currClass(self):
+        for key,values in self.class_scope.items():
+          if 'class' in values:
+            return key
+
+
       def Define(self, name, type, kind):
         if kind == 'STATIC':
             self.class_scope[name] = (type, 'STATIC' , self.static_count)
@@ -44,7 +50,7 @@ class SymbolTable:
         elif name in self.class_scope.keys():
           return self.class_scope[name][1]
         else:
-          return 'NONE'
+          return None
 
       def TypeOf(self, name):
         if name in self.subroutine_scope.keys():
@@ -52,7 +58,7 @@ class SymbolTable:
         elif name in self.class_scope.keys():
           return self.class_scope[name][0]
         else:
-          return 'NONE'
+          return None
 
       def IndexOf(self, name):
         if name in self.subroutine_scope.keys():
@@ -60,4 +66,4 @@ class SymbolTable:
         elif name in self.class_scope.keys():
           return self.class_scope[name][2]
         else:
-          return 'NONE'
+          return None
