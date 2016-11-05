@@ -1,4 +1,4 @@
-
+vmcode={'=':'eq','+':'add','-':'sub','&':'and','|':'or','~':'not','<':'lt','>':'gt'}
 
 class CompilationEngine(object):
 
@@ -158,470 +158,271 @@ class CompilationEngine(object):
 		
 		self.getNextToken()
 
-'''		
-	def CompileParameterList(self):
-		self.outfile.write('<parameterList>\n')
-		if(self.getinfo() in self.type or self.gettag()=='identifier'):
-			if(self.getinfo() in self.type):
-				self.outfile.write('<keyword> '+self.getinfo()+' </keyword>\n')
-			else: 
-				if(not self.isidentifier(self.getinfo())):
-					print ('Wrong Identifier in line '+str(self.getlineno()))
-				else:
-					self.outfile.write('<identifier> '+self.getinfo()+' </identifier>\n')
+		
+	def CompileParameterList(self,routine):
+		kind='argument'
+		if routine=='method':
+			self.table.Define('this',None,kind)
 
-			if(self.getNextToken()==-1):
-				return 1
+        if self.getinfo()==')':
+        	return
 
-			if(not self.isidentifier(self.getinfo())):
-				print ('Wrong Identifier in line '+str(self.getlineno()))
-			else:
-				self.outfile.write('<identifier> '+self.getinfo()+' </identifier>\n')
-
-			if(self.getNextToken()==-1):
-				return 1
-
-			while(sel.getinfo()==','):
-				self.outfile.write('<symbol> '+self.getinfo()+' </symbol>\n')
-
-				if(self.getNextToken()==-1):
-					return 1
-
-				if(self.getinfo() in self.type):
-					self.outfile.write('<keyword> '+self.getinfo()+' </keyword>\n')
-				else: 
-					if(not self.isidentifier(self.getinfo())):
-						print ('Wrong Identifier in line '+str(self.getlineno()))
-					else:
-						self.outfile.write('<identifier> '+self.getinfo()+' </identifier>\n')
-
-				if(self.getNextToken()==-1):
-					return 1
-
-				if(not self.isidentifier(self.getinfo())):
-					print ('Wrong Identifier in line '+str(self.getlineno()))
-				else:
-					self.outfile.write('<identifier> '+self.getinfo()+' </identifier>\n')
-
-				if(self.getNextToken()==-1):
-					return 1
-
-		else:
-			print ('Wrong symbol in line'+str(self.getlineno()))
-
-			if(self.getNextToken()==-1): return 1
-
-		self.outfile.write(' </parameterList>\n')
-		return 0
-		pass
-
-
-
+        typ=self.getinfo()
+		if typ not in self.type:
+ 			if not self.table.KindOf(typ)=='class':
+				raise Exception("Invalid argument type of: %s"%(self.peek()))
+		self.getNextToken()
+		varName=self.getNextToken('IDENTIFIER',False)
+		self.table.Define(varName,typ,kind)
+		self.getNextToken()
+        	
+        while not self.getinfo() == ')':
+            if self.getinfo() != ',':
+            	raise Exception("Illegal identifier %s"%(self.getinfo()))
+            self.getNextToken()
+			typ=self.getinfo()
+			if typ not in self.type:
+				if not self.table.KindOf(typ)=='class':
+					raise Exception("Invalid argument type of: %s"%(self.peek()))
+			self.getNextToken()
+			varName=self.getNextToken('IDENTIFIER',False)
+			self.table.Define(varName,typ,kind)
+			self.getNextToken()
 
 	def CompileVarDec(self):
-		self.outfile.write('<VarDec>\n')
-		if(self.getinfo() == 'var'):
-			self.outfile.write('<keyword> '+self.getinfo()+' </keyword>\n')
-		else:
-			print ('Missing var in line '+ self.getlineno())
+		if self.getinfo()!='var':
+			raise Exception("Illegal type %s"%(self.getinfo()))
 
-		if(self.getNextToken()==-1):
-				return 1
+		self.getNextToken()   
+		typ=self.getinfo()
+			if typ not in self.type:
+				if not self.table.KindOf(typ)=='class':
+					raise Exception("Invalid type of: %s"%(self.peek()))                      
+        
+        varName=self.getNextToken('IDENTIFIER',False)
+        self.table.Define(varName,typ,'local')
+        while not self.getinfo() == ';':
+            if self.getinfo() !=',':
+            	raise Exception("Comma expected")
+            self.getNextToken()
+            varName = self.getNextToken('IDENTIFIER',False)
+            self.table.Define(varName,typ,'local') 
+            self.getNextToken()       
+        self.getNextToken() 
 
-		if(self.getinfo() in self.type):
-			self.outfile.write('<keyword> '+self.getinfo()+' </keyword>\n')
-		else: 
-			if(not self.isidentifier(self.getinfo())):
-				print ('Wrong Identifier in line '+str(self.getlineno()))
-			else:
-				self.outfile.write('<identifier> '+self.getinfo()+' </identifier>\n')
 
-		if(self.getNextToken()==-1):
-				return 1
-
-		if(not self.isidentifier(self.getinfo())):
-			print ('Wrong Identifier in line '+str(self.getlineno()))
-		else:
-			self.outfile.write('<identifier> '+self.getinfo()+' </identifier>\n')
-
-		if(self.getNextToken()==-1):
-			return 1
-
-		while(self.getinfo()==','):
-			self.outfile.write('<symbol> '+self.getinfo()+' </symbol>\n')
-
-			if(self.getNextToken()==-1):
-				return 1
-
-			if(self.getinfo() in self.type):
-				self.outfile.write('<keyword> '+self.getinfo()+' </keyword>\n')
-			else: 
-				if(not self.isidentifier(self.getinfo())):
-					print ('Wrong Identifier in line '+str(self.getlineno()))
-				else:
-					self.outfile.write('<identifier> '+self.getinfo()+' </identifier>\n')
-
-			if(self.getNextToken()==-1):
-				return 1
-
-			if(not self.isidentifier(self.getinfo())):
-				print ('Wrong Identifier in line '+str(self.getlineno()))
-			else:
-				self.outfile.write('<identifier> '+self.getinfo()+' </identifier>\n')
-
-			if(self.getNextToken()==-1):
-				return 1
-
-		if(self.getinfo() != ';'):
-			print ('Missing ; in line'+str(self.getlineno()))
-		else:
-			self.outfile.write('<symbol> '+self.getinfo()+' </symbol>\n')
-
-		if(self.getNextToken()==-1):
-			return 1
-
-		self.outfile.write('</VarDec>\n')
-		return 0
-		pass
 
 	def CompileStatements(self):
 		while(self.getinfo() in ['let','if','while','do','return']):
 			if(self.getinfo()=='let'): 
-				if(self.CompileLet()==1): return 1
+				self.CompileLet()
 			elif (self.getinfo()=='if'): 
-				if(self.CompileIf()==1): return 1
+				self.CompileIf()
 			elif (self.getinfo()=='while'): 
-				if(self.CompileWhile()==1): return 1
+				self.CompileWhile()
 			elif (self.getinfo()=='do'): 
-				if(self.CompileDo()==1): return 1
+				self.CompileDo()
 			elif (self.getinfo()=='return'): 
-				if(self.CompileReturn()==1): return 1
-
-		return 0
-		pass
-
+				self.CompileReturn()
+			else:
+				raise Exception('Not a statement: %s' %(self.getinfo()))
 
 	def CompileLet(self):
-		self.outfile.write('<letStatement>\n')
-		if(self.getinfo()=='let'):
-			self.outfile.write('<keyword> let </keyword>\n')
-		else:
-			print ('Missing let in line '+ str(self.getlineno()))
+		if(self.getinfo()!='let'):
+			print ('Missing let in line ')
 
-		if(self.getNextToken()==-1):
-			return 1
-
-		if(not self.isidentifier(self.getinfo())):
-			print ('Wrong Identifier in line '+str(self.getlineno()))
-		else:
-			self.outfile.write('<identifier> '+self.getinfo()+' </identifier>\n')
-
-		if(self.getNextToken()==-1):
-			return 1
-
+		self.getNextToken()
+		token=self.getinfo()
+		if not self.isidentifier(self.getinfo()):
+			raise Exception('Wrong Identifier in line '+str(self.getlineno()))
+		
+		segment = self.table.KindOf(token)
+        index= self.table.IndexOf(token)
+        self.getNextToken()
+		
 		if(self.getinfo()=='['):
-			self.outfile.write('<symbol> [ </symbol>\n')
-			if(self.getNextToken()==-1):
-				return 1
-
+			self.getNextToken()
 			self.CompileExpression()
 
-			if(self.getinfo()==']'):
-				self.outfile.write('<symbol> ] </symbol>\n')
-			else:
-				print ('Missing ] in line '+ str(self.getlineno()))
+			if(self.getinfo()!=']'):
+				print ('Missing ] in line ')
 
-			if(self.getNextToken()==-1):
-				return 1
+			self.getNextToken()
+			self.vm.writePush(segment,index)
+            self.vm.writeArithmetic('add')
 
-		if(self.getinfo()=='='):
-			self.outfile.write('<symbol> = </symbol>\n')
+			if(self.getinfo()!='='):
+				raise Exception('Missing = in line ')
+
+			self.getNextToken()
+			self.CompileExpression()
+			self.vm.writePop('temp',0)
+			self.vm.writePop('pointer',1)
+			self.vm.writePush('temp',0)
+			self.vm.writePop('that',0)
 		else:
-			print ('Missing = in line '+str(self.getlineno()))
+			if(self.getinfo()!='='):
+				raise Exception('Missing = in line ')
+			self.getNextToken()
+			self.compileExpression()
+            self.vm.writePop(kind,index)
 
-		if(self.getNextToken()==-1):
-			return 1
+		if(self.getinfo()!=';'):
+			raise Exception('Missing ; in line '+str(self.getlineno()))
 
-		self.CompileExpression()
-
-		if(self.getinfo()==';'):
-			self.outfile.write('<symbol> ; </symbol>\n')
-		else:
-			print ('Missing ; in line '+str(self.getlineno()))
-
-		if(self.getNextToken()==-1):
-			return 1
-
-		self.outfile.write('</letStatement>\n')
-		return 0
-		pass
+		self.getNextToken()
 
 	def CompileIf(self):
+		if(self.getinfo()!='if'):
+			raise Exception('Missing if in line ')
 
-		self.outfile.write('<ifStatement>\n')
-		if(self.getinfo()=='if'):
-			self.outfile.write('<keyword> if </keyword>\n')
-		else:
-			print ('Missing if in line '+ str(self.getlineno()))
+		self.getNextToken()
 
-		if(self.getNextToken()==-1):
-			return 1
+		if(self.getinfo()!='('):
+			raise Exception('Missing () in line ')
 
-		if(self.getinfo()=='('):
-			self.outfile.write('<symbol> '+self.getinfo()+' </symbol>\n')
-		else:
-			print ('Missing () in line '+ str(self.getlineno()))
-
-		if(self.getNextToken()==-1):
-			return 1
-
+		self.getNextToken()
 		self.CompileExpression()
 
-		if(self.getinfo()==')'):
-			self.outfile.write('<symbol> '+self.getinfo()+' </symbol>\n')
-		else:
-			print ('Missing ) in line '+ str(self.getlineno()))
+		if(self.getinfo()!=')'):
+			raise Exception('Missing ) in line ')
+			self.getNextToken()
 
-		if(self.getNextToken()==-1):
-			return 1
+		true='IF_TRUE'+string(self.labelSuffix)
+        false='IF_FALSE'+string(self.labelSuffix)
+        end='END'+string(self.labelSuffix)
+        self.labelSuffix=self.labelSuffix+1
+        self.vm.writeIf(true)
+        self.vm.writeGoto(false)
+        self.vm.writeLabel(true)
 
+		if(self.getinfo()!='{'):
+			raise Exception('Missing { in line ')
 
-		if(self.getinfo()=='{'):
-			self.outfile.write('<symbol> '+self.getinfo()+' </symbol>\n')
-		else:
-			print ('Missing { in line '+ str(self.getlineno()))
-
-		if(self.getNextToken()==-1):
-			return 1
-
+		self.getNextToken()
 		self.CompileStatements()
 
-		if(self.getinfo()=='}'):
-			self.outfile.write('<symbol> '+self.getinfo()+' </symbol>\n')
-		else:
-			print ('Missing } in line '+ str(self.getlineno()))
+		if(self.getinfo()!='}'):
+			raise Exception('Missing } in line ')
 
-		if(self.getNextToken()==-1):
-			return 1
+		self.getNextToken()
 
-		if(self.getinfo()=='else'):
-			self.outfile.write('<keyword> '+self.getinfo()+' </keyword>\n')
+		if self.getinfo()=='else':
+            self.vm.writeGoto(end)
+        self.vm.writeLabel(false)
+        if self.getinfo()=='else':
+            if(self.getinfo()!='{'):
+			raise Exception('Missing { in line ')
 
-			if(self.getNextToken()==-1):
-				return 1
-
-			if(self.getinfo()=='{'):
-				self.outfile.write('<symbol> '+self.getinfo()+' </symbol>\n')
-			else:
-				print ('Missing { in line '+ str(self.getlineno()))
-
-			if(self.getNextToken()==-1):
-				return 1
-
+			self.getNextToken()
 			self.CompileStatements()
 
-			if(self.getinfo()=='}'):
-				self.outfile.write('<symbol> '+self.getinfo()+' </symbol>\n')
-			else:
-				print ('Missing } in line '+ str(self.getlineno()))
+			if(self.getinfo()!='}'):
+				raise Exception('Missing } in line ')
 
-			if(self.getNextToken()==-1):
-				return 1
+			self.getNextToken()
+            self.vm.writeLabel(end)
 
-		self.outfile.write('</ifStatement>\n')
-		return 0
-		pass
+		
 
 	def CompileDo(self):
-		self.outfile.write('<doStatement>\n')
+		if not self.getinfo()=='do':
+			print ('Missing do in line ')
 
-		if(self.getinfo()=='do'):
-			self.outfile.write('<keyword> do </keyword>\n')
-		else:
-			print ('Missing do in line '+ str(self.getlineno()))
+		self.getNextToken()
 
-		if(self.getNextToken()==-1):
-			return 1
+		self.compileTerm()
+		self.vm.writePop('temp',0)		
+		if self.getinfo() !=';' :
+			raise Exception("Comma Expected")
 
-		if(not self.isidentifier(self.getinfo())):
-			print ('Wrong Identifier in line '+str(self.getlineno()))
-		else:
-			self.outfile.write('<identifier> '+self.getinfo()+' </identifier>\n')
+        self.getNextToken()
 
-		if(self.getNextToken()==-1):
-			return 1
-
-		if(self.getinfo()=='.'):
-			self.outfile.write('<symbol> . </symbol>\n')
-			if(self.getNextToken()==-1):
-				return 1
-
-			if(not self.isidentifier(self.getinfo())):
-				print ('Wrong Identifier in line '+str(self.getlineno()))
-			else:
-				self.outfile.write('<identifier> '+self.getinfo()+' </identifier>\n')
-
-			if(self.getNextToken()==-1):
-				return 1
-
-
-		if(self.getinfo()=='('):
-			self.outfile.write('<symbol> '+self.getinfo()+' </symbol>\n')
-		else:
-			print ('Missing ( in line '+ str(self.getlineno()))
-
-		if(self.getNextToken()==-1):
-			return 1
-		self.outfile.write('<expressionList>\n')
-		if(self.isTerm()):
-			if(self.CompileExpression()==1): return 1
-			while(self.getinfo()==','):
-				self.outfile.write('<symbol> , </symbol>\n')
-
-				if(self.getNextToken()==-1): return 1
-
-				if(self.CompileExpression()==1): return 1
-		self.outfile.write('</expressionList>\n')
-
-
-
-		if(self.getinfo()==')'):
-			self.outfile.write('<symbol> '+self.getinfo()+' </symbol>\n')
-		else:
-			print ('Missing ) in line '+ str(self.getlineno()))
-
-		if(self.getNextToken()==-1):
-			return 1
-
-		if(self.getinfo()==';'):
-			self.outfile.write('<symbol> '+self.getinfo()+' </symbol>\n')
-		else:
-			print ('Missing ; in line '+ str(self.getlineno()))
-
-		if(self.getNextToken()==-1):
-			return 1
-
-		self.outfile.write('</doStatement>\n')
-		return 0
-		pass
-
-
-
+		
 	def CompileWhile(self):
-		self.outfile.write('<whileStatement>\n')
+		loop='LOOP'+string(self.labelSuffix)
+        end='END'+string(self.labelSuffix)
+        self.labelSuffix=self.labelSuffix+1
+        
+		if(self.getinfo()!='while'):
+			raise Exception('Missing while in line ')
 
-		if(self.getinfo()=='while'):
-			self.outfile.write('<keyword> while </keyword>\n')
-		else:
-			print ('Missing if in line '+ str(self.getlineno()))
+		self.writeLabel(loop)
+        
+		self.getNextToken()
+			
+		if(self.getinfo()!='('):
+			raise Exception('Missing ( in line ')
 
-		if(self.getNextToken()==-1):
-			return 1
-
-		if(self.getinfo()=='('):
-			self.outfile.write('<symbol> '+self.getinfo()+' </symbol>\n')
-		else:
-			print ('Missing ( in line '+ str(self.getlineno()))
-
-		if(self.getNextToken()==-1):
-			return 1
-
+		self.getNextToken()
 		self.CompileExpression()
 
-		if(self.getinfo()==')'):
-			self.outfile.write('<symbol> '+self.getinfo()+' </symbol>\n')
-		else:
-			print ('Missing ) in line '+ str(self.getlineno()))
+		if(self.getinfo()!=')'):
+			raise Exception('Missing ) in line ')
 
-		if(self.getNextToken()==-1):
-			return 1
+		self.vm.writeArithmetic('not') 
+        self.vm.writeIf(end)
 
-		if(self.getinfo()=='{'):
-			self.outfile.write('<symbol> '+self.getinfo()+' </symbol>\n')
-		else:
-			print ('Missing { in line '+ str(self.getlineno()))
+		self.getNextToken()
 
-		if(self.getNextToken()==-1):
-			return 1
+		if(self.getinfo()!='{'):
+			raise Exception('Missing { in line ')
 
+		self.getNextToken()
 		self.CompileStatements()
 
-		if(self.getinfo()=='}'):
-			self.outfile.write('<symbol> '+self.getinfo()+' </symbol>\n')
-		else:
-			print ('Missing } in line '+ str(self.getlineno()))
+		if(self.getinfo()!='}'):
+			raise Exception('Missing } in line ')
+		self.vm.writeGoto(loop)
+        self.writeLabel(end)
 
-		if(self.getNextToken()==-1):
-			return 1
-
-		self.outfile.write('</whileStatement>\n')
-		return 0
-		pass
+		self.getNextToken()
 
 	def CompileReturn(self):
-		self.outfile.write('<ReturnStatement>\n')
+		if(self.getinfo()!='return'):
+			raise Exception('Missing return in line '+str(self.getlineno()))
 
-		if(self.getinfo()=='return'):
-			self.outfile.write('<keyword> return </keyword>\n')
-		else:
-			print ('Missing return in line '+str(self.getlineno()))
+		self.getNextToken()
 
-		if(self.getNextToken()==-1):
-			return 1
-
-		if(self.isTerm()):
+		if(self.getinfo()!=';'):
 			self.CompileExpression()
-
-		if(self.getinfo()==';'):
-			self.outfile.write('<symbol> '+self.getinfo()+' </symbol>\n')
 		else:
-			print ('Missing ; in line '+ str(self.getlineno()))
+			self.vm.writePush('constant',0)
 
-		if(self.getNextToken()==-1):
-			return 1
+		if(self.getinfo()!=';'):
+			raise Exception('Missing ; in line ')
+		self.vm.writeReturn()
 
-		self.outfile.write('</ReturnStatement>\n')
-
-		return 0
-		pass
+		self.getNextToken()
 
 	def CompileExpression(self):
-		self.outfile.write('<expression>\n')
-
 		self.CompileTerm()
 
-		while(self.getinfo() in ['+','-','*','/','&amp','|','&lt','&gt','=']):
-			self.outfile.write('<symbol> '+self.getinfo()+' </symbol>\n')
-			if(self.getNextToken()==-1):
-				return 1
+		while(self.getinfo() in '+-*/&|<>='):
+			token=self.getinfo()
+			self.getNextToken()
 			self.CompileTerm()
-
-		self.outfile.write('</expression>\n')
-		return 0
-		pass
-
-
-
-	def close(self):
-		self.outfile.close()
+			if token == '/':
+                self.vm.writeCall('Math.divide',2)
+            elif token == '*':
+                self.vm.writeCall('Math.multiply',2)
+            else:
+                self.vm.writeArithmetic(vmcode[token])
 
 	def CompileExpressionList(self):
-		self.outfile.write('<expressionList>\n')
-		if(self.isTerm()):
-			if(self.CompileExpression()==1): return 1
-			while(self.getinfo()==','):
-				self.outfile.write('<symbol> , </symbol>\n')
+        if self.getinfo()==')':
+        	return 0
+        nargs=1
+        self.CompileExpression()
 
-				if(self.getNextToken()==-1): return 1
+        while not self.getinfo() == ')': 
+            if self.getinfo()!=',':
+            	raise Exception("Comma expected")
+            nargs=nargs+1
+            self.compileExpression()
+        return nargs
 
-				if(self.CompileExpression()==1): return 1
-		self.outfile.write('</expressionList>\n')
-
-		if(self.getNextToken()==-1): return 1
-
-		return 0
-		pass
-
+'''
 	def CompileTerm(self):
 		#if(self.getNextToken()==-1): return 1
 		return 0
@@ -763,3 +564,4 @@ class CompilationEngine(object):
 
 cp=CompilationEngine('test1T.xml')
 
+'''
