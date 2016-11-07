@@ -28,39 +28,30 @@ class CompilationEngine(object):
 
         def CompileClass(self):
             if(self.getinfo() != 'class'):
-                raise Exception('No class in given file: Invalid token %s'%(self.getinfo()))
+                raise Exception('No class in given file: Invalid token \'%s\''%(self.getinfo()))
+            self.getNextToken()
 
-                self.getNextToken()
+            if(self.gettag() != 'identifier'):
+                raise Exception('Invalid class name: %s'%(self.getinfo()))
 
-                if(self.gettag() != 'identifier'):
-                    raise Exception('Invalid class name: %s'%(self.getinfo()))
-                className=self.getinfo()
-                self.table.Define(className,className,'class')
+            className=self.getinfo()
+            self.table.Define(className,className,'class')
 
-                self.getNextToken()
+            self.getNextToken()
 
-                if(self.getinfo() != '{'):
-                    raise Exception('Missing { : Invalid token: %s'%(self.getinfo()))
+            if(self.getinfo() != '{'):
+                raise Exception('Missing { : Invalid token: %s'%(self.getinfo()))
 
-                self.getNextToken()
+            self.getNextToken()
 
-                while(self.getinfo() in ['static','field']):
-                    self.CompileClassVarDec()
+            while(self.getinfo() in ['static','field']):
+                self.CompileClassVarDec()
 
-                while(self.getinfo() in self.function):
-                    self.CompileSubroutine(className)
+            while(self.getinfo() in self.function):
+                self.CompileSubroutine(className)
 
-                if(self.getinfo() != '}'):
-                    raise Exception('Missing } : Invalid token: %s'%(self.getinfo()))
-
-        '''	
-        def isidentifier(self,token):
-            if(self.gettag()=='identifier'):
-                return 1
-            else:
-                return 0
-        '''
-
+            if(self.getinfo() != '}'):
+                raise Exception('Missing } : Invalid token: %s'%(self.getinfo()))
 
         def CompileClassVarDec(self):
             kind=self.getinfo()
