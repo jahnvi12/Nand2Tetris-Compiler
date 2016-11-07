@@ -1,6 +1,8 @@
 import os
 import JackTokenizer as jt
-import CompilationEngine as ce 
+import CompilationEngineFinal as ce 
+import SymbolTable as ST
+import VMWriter
 import sys 
 
 input=sys.argv[1]
@@ -20,5 +22,7 @@ else:
 for file in fileList:
     outFile=file.split('/')[-1].split('.')[0]+'.vm' 
     tokenizer=jt.JackTokenizer(file)
-    compiler=ce.CompilationEngine(outFile,tokenizer)
-    compiler.compileClass()
+    table = ST.SymbolTable()
+    vm = VMWriter.VMWriter(outFile)
+    compiler=ce.CompilationEngine(tokenizer, table, vm)
+    compiler.CompileClass()
