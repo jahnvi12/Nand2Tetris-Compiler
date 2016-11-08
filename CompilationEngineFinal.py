@@ -340,7 +340,7 @@ class CompilationEngine(object):
 
             self.getNextToken()
 
-            self.compileTerm()
+            self.CompileTerm()
             self.vm.writePop('temp',0)		
             if self.getinfo() !=';' :
                 raise Exception("Comma Expected")
@@ -349,43 +349,42 @@ class CompilationEngine(object):
 
 
         def CompileWhile(self):
-                loop='LOOP'+string(self.labelSuffix)
-                end='END'+string(self.labelSuffix)
-                self.labelSuffix=self.labelSuffix+1
+            print "Compiling while loop..."
+            loop='LOOP'+str(self.labelSuffix)
+            end='END'+str(self.labelSuffix)
+            self.labelSuffix=self.labelSuffix+1
 
-                if(self.getinfo()!='while'):
-                    raise Exception('Missing while in line ')
+            self.vm.writeLabel(loop)
 
-                self.writeLabel(loop)
+            self.getNextToken()
 
-                self.getNextToken()
+            if not self.getinfo() == '(' :
+                raise Exception('Missing ( in while loop condition')
 
-                if(self.getinfo()!='('):
-                    raise Exception('Missing ( in line ')
+            self.getNextToken()
+            self.CompileExpression()
 
-                self.getNextToken()
-                self.CompileExpression()
+            if not self.getinfo() == ')' :
+                raise Exception('Missing ) in while loop condition')
 
-                if(self.getinfo()!=')'):
-                    raise Exception('Missing ) in line ')
+            self.vm.writeArithmetic('not') 
+            self.vm.writeIf(end)
 
-                self.vm.writeArithmetic('not') 
-                self.vm.writeIf(end)
+            self.getNextToken()
 
-                self.getNextToken()
+            if not self.getinfo() == '{' :
+                raise Exception('Missing { in while loop body')
 
-                if(self.getinfo()!='{'):
-                    raise Exception('Missing { in line ')
+            self.getNextToken()
+            self.CompileStatements()
 
-                self.getNextToken()
-                self.CompileStatements()
+            if not self.getinfo() == '}' :
+                raise Exception('Missing } in while loop body')
 
-                if(self.getinfo()!='}'):
-                    raise Exception('Missing } in line ')
-                self.vm.writeGoto(loop)
-                self.writeLabel(end)
+            self.vm.writeGoto(loop)
+            self.vm.writeLabel(end)
 
-                self.getNextToken()
+            self.getNextToken()
 
         def CompileReturn(self):
             if(self.getinfo()!='return'):
@@ -428,8 +427,95 @@ class CompilationEngine(object):
                 if self.getinfo()!=',':
                     raise Exception("Comma expected")
                 nargs=nargs+1
-                self.compileExpression()
+                self.CompileExpression()
                 return nargs
+
+        def CompileTerm(self):
+		#self.outfile.write("locha ithe 2\n\n");
+
+		#specs:
+		#in case eof is encountere mid execution, returns -1.
+		#else returns something else. same value as getnextline()
+		#incase somewhere error is there, then that particular term is not printed.
+		#the presentline is expected to hold the token from which the analysis is to start.
+		token_tag = self.gettag()
+                token = self.getinfo()
+
+                if token_tag == "INT_CONST":
+                    self.vm.writePush('constant', self.tokenizer.intVal())
+
+                elif token_tag == 'STRING_CONST':
+                    self.vm.writePush('constant', len(token))          
+                    self.vm.writeCall('String.new', 1)               
+                    for char in token:
+                        self.vm.writePush('constant', ord(char))   
+                        self.vm.writeCall('String.appendChar',2)            
+
+                elif token_tag == 'KEYWORD':
+                    if token in ['false','null']:
+                        self.vm.writePush('constant',0)
+                    elif token == 'true':
+                        self.vm.writePush('constant',0)
+                        self.vm.writeArithmetic('not')
+                    elif token == 'this':
+                        self.vm.writePush('pointer',0)             
+                    else:
+                        raise Exception('Unrecognized keyword: %s' %token)
+
+                elif token_tag == 'SYMBOL':
+                    if token == '(':
+                        self.compileExpression()
+                        self.getNextToken(')',True)
+                    elif token in ['-','~']:
+                        self.compileTerm()
+                        if token == '-':
+                            self.vm.writeArithmetic('neg')
+                        else:
+                            self.vm.writeArithmetic('not')
+                    else:
+                        raise Exception('Unrecognized symbol: %s' %token)
+
+                elif token_tag == 'IDENTIFIER':
+                    nargs = 0
+                    name = token
+                    kind=self.table.KindOf(name)
+                    index=self.table.IndexOf(name)
+                    token = self.peek()
+                    if token == '(':
+                        self.vm.writePush('pointer',0) 
+                        self.getNextToken('(',True)
+                        nargs= self.compileExpressionList()+1
+                        self.getNextToken(')',True)
+                        className = self.table.currClass()
+                        self.vm.writeCall(className+'$'+name,nargs)
+
+                    elif token == '.':
+                        nargs=0    
+                        self.getNextToken('.',True)
+                        function = self.getNextToken('IDENTIFIER',False)
+                        if kind in ('field','local','static'): 
+                            self.vm.writePush(kind,index)
+                            nargs=1
+                            self.getNextToken('(',True)
+                            nargs+=self.compileExpressionList()
+                            self.getNextToken(')',True)                
+                            token_tag = self.table.TypeOf(name)
+                            if token_tag == None: 
+                                token_tag = name 
+                                self.vm.writeCall('%s$%s' %(token_tag,function),count)    
+                            elif token == '[':
+                                self.getNextToken('[',True)
+                                self.compileExpression()
+                                self.getNextToken(']',True)
+                                self.vm.writePush(kind,index)
+                                self.vm.writeArithmetic('add')  
+                                self.vm.writePop('pointer',1)
+                                self.vm.writePush('that',0)
+                            else:
+                                self.vm.writePush(kind,index)
+                        else:
+                            raise Exception('Illegal Token: %s' %(token))
+                self.getNextToken()
 
 '''
 def CompileTerm(self):
