@@ -231,104 +231,106 @@ class CompilationEngine(object):
                     self.CompileDo()
                 elif (self.getinfo()=='return'): 
                     self.CompileReturn()
-                else:
-                    raise Exception('Not a statement: %s' %(self.getinfo()))
 
         def CompileLet(self):
-            if(self.getinfo()!='let'):
-                print ('Missing let in line ')
-
+            print "Compiling Let Statement..."
             self.getNextToken()
+
             token=self.getinfo()
-            if not self.isidentifier(self.getinfo()):
-                raise Exception('Wrong Identifier in line '+str(self.getlineno()))
+
+            if not self.gettag() == "IDENTIFIER":
+                raise Exception('Wrong variable name %s in let' %(self.getinfo()))
 
             segment = self.table.KindOf(token)
             index= self.table.IndexOf(token)
             self.getNextToken()
 
-            if(self.getinfo()=='['):
-                    self.getNextToken()
-                    self.CompileExpression()
-
-                    if(self.getinfo()!=']'):
-                        print ('Missing ] in line ')
-
-                    self.getNextToken()
-                    self.vm.writePush(segment,index)
-                    self.vm.writeArithmetic('add')
-
-                    if(self.getinfo()!='='):
-                        raise Exception('Missing = in line ')
-
-                    self.getNextToken()
-                    self.CompileExpression()
-                    self.vm.writePop('temp',0)
-                    self.vm.writePop('pointer',1)
-                    self.vm.writePush('temp',0)
-                    self.vm.writePop('that',0)
-            else:
-                if(self.getinfo()!='='):
-                    raise Exception('Missing = in line ')
+            if self.getinfo() == '[' :
                 self.getNextToken()
-                self.compileExpression()
-                self.vm.writePop(kind,index)
+                self.CompileExpression()
 
-            if(self.getinfo()!=';'):
-                raise Exception('Missing ; in line '+str(self.getlineno()))
+                if(self.getinfo()!=']'):
+                    raise Exception('Missing ] in let')
+
+
+                self.vm.writePush(segment,index)
+                self.vm.writeArithmetic('add')
+
+                self.getNextToken()
+                if not self.getinfo() == '=' :
+                    raise Exception('Missing = in let ')
+
+                self.getNextToken()
+                self.CompileExpression()
+                self.vm.writePop('temp',0)
+                self.vm.writePop('pointer',1)
+                self.vm.writePush('temp',0)
+                self.vm.writePop('that',0)
+
+            else:
+                if not self.getinfo() == '=' :
+                    raise Exception('Missing = in let ')
+
+                self.getNextToken()
+                self.CompileExpression()
+                self.vm.writePop(segment, index)
+
+            if not self.getinfo() == ';' :
+                raise Exception('Missing ; in let statement')
 
             self.getNextToken()
+            #print self.getinfo()
 
         def CompileIf(self):
-            if(self.getinfo()!='if'):
-                raise Exception('Missing if in line ')
-
+            print "Compiling If Statement..."
             self.getNextToken()
 
-            if(self.getinfo()!='('):
-                raise Exception('Missing () in line ')
+            if not self.getinfo() == '(' :
+                raise Exception('Missing ( in if condition ')
 
             self.getNextToken()
             self.CompileExpression()
 
-            if(self.getinfo()!=')'):
-                raise Exception('Missing ) in line ')
-            self.getNextToken()
+            if not self.getinfo() == ')' :
+                raise Exception('Missing ) in if condition ')
 
-            true='IF_TRUE'+string(self.labelSuffix)
-            false='IF_FALSE'+string(self.labelSuffix)
-            end='END'+string(self.labelSuffix)
+
+            true='IF_TRUE'+str(self.labelSuffix)
+            false='IF_FALSE'+str(self.labelSuffix)
+            end='END'+str(self.labelSuffix)
             self.labelSuffix=self.labelSuffix+1
             self.vm.writeIf(true)
             self.vm.writeGoto(false)
             self.vm.writeLabel(true)
 
-            if(self.getinfo()!='{'):
-                raise Exception('Missing { in line ')
+            self.getNextToken()
+
+            if not self.getinfo() == '{' :
+                raise Exception('Missing { in if body ')
 
             self.getNextToken()
             self.CompileStatements()
 
-            if(self.getinfo()!='}'):
-                raise Exception('Missing } in line ')
+            if not self.getinfo() == '}' :
+                raise Exception('Missing } in if body ')
 
             self.getNextToken()
 
-            if self.getinfo()=='else':
+            if self.getinfo() == 'else':
                 self.vm.writeGoto(end)
                 self.vm.writeLabel(false)
-                if self.getinfo()=='else':
-                    if(self.getinfo()!='{'):
-                        raise Exception('Missing { in line ')
+                self.getNextToken()
+                if not self.getinfo() == '{' :
+                    raise Exception('Missing { in else body ')
 
-                    self.getNextToken()
-                    self.CompileStatements()
+                self.getNextToken()
+                self.CompileStatements()
 
-                    if(self.getinfo()!='}'):
-                        raise Exception('Missing } in line ')
+                if not self.getinfo() == '}' :
+                    raise Exception('Missing } in else body ')
 
-                    self.getNextToken()
-                    self.vm.writeLabel(end)
+                self.getNextToken()
+                self.vm.writeLabel(end)
 
 
 
