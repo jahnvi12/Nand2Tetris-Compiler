@@ -24,10 +24,11 @@ class CompilationEngine(object):
             if self.tokenizer.hasMoreTokens():
                 self.tokenizer.advance()
             else:
-                raise Exception("Too less tokens to parse!")
+                raise Exception("Too less tokens to parse after %s"% self.getinfo())
 
 
         def CompileClass(self):
+            print "Compiling class..."
             if(self.getinfo() != 'class'):
                 raise Exception('No class in given file: Invalid token \'%s\''%(self.getinfo()))
             self.getNextToken()
@@ -89,6 +90,7 @@ class CompilationEngine(object):
             self.getNextToken()
 
         def CompileSubroutine(self,className):
+            print "Compiling Subroutine..."
             kind=self.getinfo()
             if kind not in self.function:
                 raise Exception('Illegal function kind: %s' %kind)
@@ -107,31 +109,32 @@ class CompilationEngine(object):
             name=self.getinfo()
 
             if not self.gettag()=='IDENTIFIER':
-                raise Exception("Illegal identifier: %s"%name)
+                raise Exception("Illegal identifier for function name: %s"%name)
 
             self.table.Define(name, className, kind)
             self.table.startSubroutine()
             self.getNextToken()
 
             if self.getinfo() != '(':
-                print ('Missing ( in line')
-                self.getNextToken()
-                self.CompileParameterList(kind)
+                raise Exception("Missing ( for function : %s"%name)
+            self.getNextToken()
+            self.CompileParameterList(kind)
 
             if self.getinfo() != ')':
-                print ('Missing ) in line')
+                raise Exception("Missing ) for function : %s"%name)
 
             self.getNextToken()
 
             if self.getinfo() != '{':
-                print ('Missing { in line')
+                raise Exception("Missing { for function : %s"%name)
 
             self.getNextToken()
+            #print self.getinfo()
 
             while(self.getinfo() == 'var'):
                 self.CompileVarDec()
 
-            self.vm.writeFunction(className+'$'+name,self.table.VarCount('local'))
+            self.vm.writeFunction(className+'.'+name,self.table.VarCount('local'))
 
             if kind=='constructor':
                 ###check formula to calculate size of object--->
@@ -143,16 +146,18 @@ class CompilationEngine(object):
                     self.vm.writePush('argument',0) 
                     self.vm.writePop('pointer',0) 
 
-            self.compileStatements()
-            self.getNextToken()
+            #print self.getinfo()
+            self.CompileStatements()
+            #self.getNextToken()
 
             if self.getinfo() != '}':
-                print ('Missing } in line')
+                raise Exception("Missing } for function : %s"%name)
 
             self.getNextToken()
 
 
         def CompileParameterList(self,routine):
+            #print self.gettag()
             kind='argument'
             if routine=='method':
                 self.table.Define('this',None,kind)
@@ -184,28 +189,35 @@ class CompilationEngine(object):
                     self.getNextToken()
 
         def CompileVarDec(self):
-            if self.getinfo()!='var':
+            print "Compiling Variable Declaration Statement..."
+            if self.getinfo() != 'var':
                 raise Exception("Illegal type %s"%(self.getinfo()))
 
             self.getNextToken()   
+
             typ=self.getinfo()
             if typ not in self.type:
-                #if not self.table.KindOf(typ)=='class':
                 if not self.gettag() == "IDENTIFIER":
-                    raise Exception("Invalid type of: %s"%(self.peek()))                      
+                    raise Exception("Invalid type : %s"%(self.getinfo()))
 
-            varName=self.getNextToken('IDENTIFIER',False)
-            self.table.Define(varName,typ,'local')
+            self.getNextToken()
+            varName=self.getinfo()
+            if not self.gettag() == "IDENTIFIER":
+                raise Exception("Invalid varname : %s"%(self.getinfo()))
+            self.table.Define(varName, typ, 'local')
+            self.getNextToken()
+
             while not self.getinfo() == ';':
                 if self.getinfo() !=',':
-                    raise Exception("Comma expected")
+                    raise Exception("Comma expected in variable declaration")
                 self.getNextToken()
-                varName = self.getNextToken('IDENTIFIER',False)
-                self.table.Define(varName,typ,'local') 
+                varName = self.getinfo()
+
+                self.table.Define(varName, typ, 'local') 
                 self.getNextToken()       
-                self.getNextToken() 
 
-
+            self.getNextToken()       
+            #print self.getinfo()
 
         def CompileStatements(self):
             while(self.getinfo() in ['let','if','while','do','return']):
