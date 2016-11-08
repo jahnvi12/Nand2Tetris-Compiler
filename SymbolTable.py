@@ -24,6 +24,8 @@ class SymbolTable:
         elif kind == 'field':
             self.class_scope[name] = (type, 'field' , self.field_count)
             self.field_count += 1
+        elif kind == 'class':
+            self.class_scope[name] = (type, 'class' , 0)
         elif kind == 'argument':
             self.subroutine_scope[name] = (type, 'argument' , self.arg_count)
             self.arg_count += 1
