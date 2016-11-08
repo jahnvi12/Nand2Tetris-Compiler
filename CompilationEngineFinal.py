@@ -9,15 +9,16 @@ class CompilationEngine(object):
             self.labelSuffix=0
             self.type=['int','char','boolean']
             self.function=['constructor','function','method']
+            self.getNextToken()
 
         def peek(self):
             return self.tokenizer.tokenList[0]
 
         def gettag(self):
-            return self.peek().tokenType()
+            return self.tokenizer.tokenType()
 
         def getinfo(self):
-            return self.peek()
+            return self.tokenizer.token
 
         def getNextToken(self):
             if self.tokenizer.hasMoreTokens():
@@ -31,11 +32,12 @@ class CompilationEngine(object):
                 raise Exception('No class in given file: Invalid token \'%s\''%(self.getinfo()))
             self.getNextToken()
 
-            if(self.gettag() != 'identifier'):
+            if(self.gettag() != 'IDENTIFIER'):
                 raise Exception('Invalid class name: %s'%(self.getinfo()))
 
             className=self.getinfo()
             self.table.Define(className,className,'class')
+            print self.table.class_scope
 
             self.getNextToken()
 
@@ -58,96 +60,96 @@ class CompilationEngine(object):
             if not kind in ['static','field']:
                 raise Exception('Invalid variable kind: %s'%(self.getinfo()))
 
-                self.getNextToken()
-                typ=self.getinfo()
-                if typ not in self.type:
-                    if not self.table.KindOf(typ)=='class':
-                        raise Exception("Invalid variable type : %s"%typ)
+            self.getNextToken()
+            typ=self.getinfo()
+            if typ not in self.type:
+                if not self.table.KindOf(typ)=='class':
+                    raise Exception("Invalid variable type : %s"%typ)
 
+            self.getNextToken()
+            varName=self.getinfo()
+            if not self.gettag()=='IDENTIFIER':
+                raise Exception("Illegal identifier: %s"%varName)
+
+            self.table.Define(varName,typ,kind)
+
+            self.getNextToken()
+
+            while self.getinfo()==',':
                 self.getNextToken()
                 varName=self.getinfo()
                 if not self.gettag()=='IDENTIFIER':
                     raise Exception("Illegal identifier: %s"%varName)
-
                 self.table.Define(varName,typ,kind)
-
                 self.getNextToken()
 
-                while self.getinfo()==',':
-                    self.getNextToken()
-                    varName=self.getinfo()
-                    if not self.gettag()=='IDENTIFIER':
-                        raise Exception("Illegal identifier: %s"%varName)
-                    self.table.Define(varName,typ,kind)
-                    self.getNextToken()
+            if self.getinfo() != ';':
+                raise Exception('; Missing!!')
 
-                if self.getinfo() != ';':
-                    raise Exception('; Missing!!')
-
-                self.getNextToken()
+            self.getNextToken()
 
         def CompileSubroutine(self,className):
             kind=self.getinfo()
             if kind not in self.function:
                 raise Exception('Illegal function kind: %s' %kind)
 
+            self.getNextToken()
+
+            typ=self.getinfo()
+            if typ not in self.type and not typ=='void':
+                if not self.table.KindOf(typ)=='class':
+                    raise Exception("Invalid return type : %s"%typ)
+                elif kind=='constructor':
+                    raise Exception("Return type of constructor has to be class name!")
+
+            self.getNextToken()
+
+            name=self.getinfo()
+
+            if not self.gettag()=='IDENTIFIER':
+                raise Exception("Illegal identifier: %s"%name)
+
+            self.table.Define(name,None,kind)
+            self.table.startSubroutine()
+            self.getNextToken()
+
+            if self.getinfo() != '(':
+                print ('Missing ( in line')
                 self.getNextToken()
+                self.CompileParameterList(kind)
 
-                typ=self.getinfo()
-                if typ not in self.type and not typ=='void':
-                    if not self.table.KindOf(typ)=='class':
-                        raise Exception("Invalid return type : %s"%typ)
-                    elif kind=='constructor':
-                        raise Exception("Return type of constructor has to be class name!")
+            if self.getinfo() != ')':
+                print ('Missing ) in line')
 
-                self.getNextToken()
+            self.getNextToken()
 
-                name=self.getinfo()
+            if self.getinfo() != '{':
+                print ('Missing { in line')
 
-                if not self.gettag()=='IDENTIFIER':
-                    raise Exception("Illegal identifier: %s"%name)
+            self.getNextToken()
 
-                self.table.Define(name,None,kind)
-                self.table.startSubroutine()
-                self.getNextToken()
+            while(self.getinfo() == 'var'):
+                self.CompileVarDec()
 
-                if self.getinfo() != '(':
-                    print ('Missing ( in line')
-                    self.getNextToken()
-                    self.CompileParameterList(kind)
+            self.vm.writeFunction(className+'$'+name,self.table.VarCount('local'))
 
-                if self.getinfo() != ')':
-                    print ('Missing ) in line')
+            if kind=='constructor':
+                ###check formula to calculate size of object--->
+                size=self.table.VarCount('field')
+                self.vm.writePush('constant',size)
+                self.vm.writeCall('Memory.alloc',1) 
+                self.vm.writePop('pointer',0)
+                if kind=='method':
+                    self.vm.writePush('argument',0) 
+                    self.vm.writePop('pointer',0) 
 
-                self.getNextToken()
+            self.compileStatements()
+            self.getNextToken()
 
-                if self.getinfo() != '{':
-                    print ('Missing { in line')
+            if self.getinfo() != '}':
+                print ('Missing } in line')
 
-                self.getNextToken()
-
-                while(self.getinfo() == 'var'):
-                    self.CompileVarDec()
-
-                self.vm.writeFunction(className+'$'+name,self.table.VarCount('local'))
-
-                if kind=='constructor':
-                    ###check formula to calculate size of object--->
-                    size=self.table.VarCount('field')
-                    self.vm.writePush('constant',size)
-                    self.vm.writeCall('Memory.alloc',1) 
-                    self.vm.writePop('pointer',0)
-                    if kind=='method':
-                        self.vm.writePush('argument',0) 
-                        self.vm.writePop('pointer',0) 
-
-                self.compileStatements()
-                self.getNextToken()
-
-                if self.getinfo() != '}':
-                    print ('Missing } in line')
-
-                self.getNextToken()
+            self.getNextToken()
 
 
         def CompileParameterList(self,routine):
@@ -222,97 +224,97 @@ class CompilationEngine(object):
             if(self.getinfo()!='let'):
                 print ('Missing let in line ')
 
-                self.getNextToken()
-                token=self.getinfo()
-                if not self.isidentifier(self.getinfo()):
-                    raise Exception('Wrong Identifier in line '+str(self.getlineno()))
+            self.getNextToken()
+            token=self.getinfo()
+            if not self.isidentifier(self.getinfo()):
+                raise Exception('Wrong Identifier in line '+str(self.getlineno()))
 
-                segment = self.table.KindOf(token)
-                index= self.table.IndexOf(token)
-                self.getNextToken()
+            segment = self.table.KindOf(token)
+            index= self.table.IndexOf(token)
+            self.getNextToken()
 
-                if(self.getinfo()=='['):
-                        self.getNextToken()
-                        self.CompileExpression()
+            if(self.getinfo()=='['):
+                    self.getNextToken()
+                    self.CompileExpression()
 
-                        if(self.getinfo()!=']'):
-                            print ('Missing ] in line ')
+                    if(self.getinfo()!=']'):
+                        print ('Missing ] in line ')
 
-                        self.getNextToken()
-                        self.vm.writePush(segment,index)
-                        self.vm.writeArithmetic('add')
+                    self.getNextToken()
+                    self.vm.writePush(segment,index)
+                    self.vm.writeArithmetic('add')
 
-                        if(self.getinfo()!='='):
-                            raise Exception('Missing = in line ')
-
-                        self.getNextToken()
-                        self.CompileExpression()
-                        self.vm.writePop('temp',0)
-                        self.vm.writePop('pointer',1)
-                        self.vm.writePush('temp',0)
-                        self.vm.writePop('that',0)
-                else:
                     if(self.getinfo()!='='):
                         raise Exception('Missing = in line ')
+
                     self.getNextToken()
-                    self.compileExpression()
-                    self.vm.writePop(kind,index)
-
-                if(self.getinfo()!=';'):
-                    raise Exception('Missing ; in line '+str(self.getlineno()))
-
+                    self.CompileExpression()
+                    self.vm.writePop('temp',0)
+                    self.vm.writePop('pointer',1)
+                    self.vm.writePush('temp',0)
+                    self.vm.writePop('that',0)
+            else:
+                if(self.getinfo()!='='):
+                    raise Exception('Missing = in line ')
                 self.getNextToken()
+                self.compileExpression()
+                self.vm.writePop(kind,index)
+
+            if(self.getinfo()!=';'):
+                raise Exception('Missing ; in line '+str(self.getlineno()))
+
+            self.getNextToken()
 
         def CompileIf(self):
             if(self.getinfo()!='if'):
                 raise Exception('Missing if in line ')
 
-                self.getNextToken()
+            self.getNextToken()
 
-                if(self.getinfo()!='('):
-                    raise Exception('Missing () in line ')
+            if(self.getinfo()!='('):
+                raise Exception('Missing () in line ')
 
-                self.getNextToken()
-                self.CompileExpression()
+            self.getNextToken()
+            self.CompileExpression()
 
-                if(self.getinfo()!=')'):
-                    raise Exception('Missing ) in line ')
-                self.getNextToken()
+            if(self.getinfo()!=')'):
+                raise Exception('Missing ) in line ')
+            self.getNextToken()
 
-                true='IF_TRUE'+string(self.labelSuffix)
-                false='IF_FALSE'+string(self.labelSuffix)
-                end='END'+string(self.labelSuffix)
-                self.labelSuffix=self.labelSuffix+1
-                self.vm.writeIf(true)
-                self.vm.writeGoto(false)
-                self.vm.writeLabel(true)
+            true='IF_TRUE'+string(self.labelSuffix)
+            false='IF_FALSE'+string(self.labelSuffix)
+            end='END'+string(self.labelSuffix)
+            self.labelSuffix=self.labelSuffix+1
+            self.vm.writeIf(true)
+            self.vm.writeGoto(false)
+            self.vm.writeLabel(true)
 
-                if(self.getinfo()!='{'):
-                    raise Exception('Missing { in line ')
+            if(self.getinfo()!='{'):
+                raise Exception('Missing { in line ')
 
-                self.getNextToken()
-                self.CompileStatements()
+            self.getNextToken()
+            self.CompileStatements()
 
-                if(self.getinfo()!='}'):
-                    raise Exception('Missing } in line ')
+            if(self.getinfo()!='}'):
+                raise Exception('Missing } in line ')
 
-                self.getNextToken()
+            self.getNextToken()
 
+            if self.getinfo()=='else':
+                self.vm.writeGoto(end)
+                self.vm.writeLabel(false)
                 if self.getinfo()=='else':
-                    self.vm.writeGoto(end)
-                    self.vm.writeLabel(false)
-                    if self.getinfo()=='else':
-                        if(self.getinfo()!='{'):
-                            raise Exception('Missing { in line ')
+                    if(self.getinfo()!='{'):
+                        raise Exception('Missing { in line ')
 
-                        self.getNextToken()
-                        self.CompileStatements()
+                    self.getNextToken()
+                    self.CompileStatements()
 
-                        if(self.getinfo()!='}'):
-                            raise Exception('Missing } in line ')
+                    if(self.getinfo()!='}'):
+                        raise Exception('Missing } in line ')
 
-                        self.getNextToken()
-                        self.vm.writeLabel(end)
+                    self.getNextToken()
+                    self.vm.writeLabel(end)
 
 
 
@@ -373,32 +375,32 @@ class CompilationEngine(object):
             if(self.getinfo()!='return'):
                 raise Exception('Missing return in line '+str(self.getlineno()))
 
-                self.getNextToken()
+            self.getNextToken()
 
-                if(self.getinfo()!=';'):
-                    self.CompileExpression()
-                else:
-                    self.vm.writePush('constant',0)
+            if(self.getinfo()!=';'):
+                self.CompileExpression()
+            else:
+                self.vm.writePush('constant',0)
 
-                if(self.getinfo()!=';'):
-                    raise Exception('Missing ; in line ')
-                self.vm.writeReturn()
+            if(self.getinfo()!=';'):
+                raise Exception('Missing ; in line ')
+            self.vm.writeReturn()
 
-                self.getNextToken()
+            self.getNextToken()
 
         def CompileExpression(self):
-                self.CompileTerm()
+            self.CompileTerm()
 
-                while(self.getinfo() in '+-*/&|<>='):
-                    token=self.getinfo()
-                    self.getNextToken()
-                    self.CompileTerm()
-                    if token == '/':
-                        self.vm.writeCall('Math.divide',2)
-                    elif token == '*':
-                        self.vm.writeCall('Math.multiply',2)
-                    else:
-                        self.vm.writeArithmetic(vmcode[token])
+            while(self.getinfo() in '+-*/&|<>='):
+                token=self.getinfo()
+                self.getNextToken()
+                self.CompileTerm()
+                if token == '/':
+                    self.vm.writeCall('Math.divide',2)
+                elif token == '*':
+                    self.vm.writeCall('Math.multiply',2)
+                else:
+                    self.vm.writeArithmetic(vmcode[token])
 
         def CompileExpressionList(self):
             if self.getinfo()==')':
