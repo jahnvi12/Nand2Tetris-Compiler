@@ -37,7 +37,6 @@ class CompilationEngine(object):
 
             className=self.getinfo()
             self.table.Define(className,className,'class')
-            print self.table.class_scope
 
             self.getNextToken()
 
@@ -63,7 +62,8 @@ class CompilationEngine(object):
             self.getNextToken()
             typ=self.getinfo()
             if typ not in self.type:
-                if not self.table.KindOf(typ)=='class':
+                #if not self.table.KindOf(typ)=='class':
+                if not self.gettag() == "IDENTIFIER":
                     raise Exception("Invalid variable type : %s"%typ)
 
             self.getNextToken()
@@ -109,7 +109,7 @@ class CompilationEngine(object):
             if not self.gettag()=='IDENTIFIER':
                 raise Exception("Illegal identifier: %s"%name)
 
-            self.table.Define(name,None,kind)
+            self.table.Define(name, className, kind)
             self.table.startSubroutine()
             self.getNextToken()
 
@@ -162,7 +162,8 @@ class CompilationEngine(object):
 
             typ=self.getinfo()
             if typ not in self.type:
-                if not self.table.KindOf(typ)=='class':
+                #if not self.table.KindOf(typ)=='class':
+                if not self.gettag() == "IDENTIFIER":
                     raise Exception("Invalid argument type of: %s"%(self.peek()))
                 self.getNextToken()
                 varName=self.getNextToken('IDENTIFIER',False)
@@ -189,7 +190,8 @@ class CompilationEngine(object):
             self.getNextToken()   
             typ=self.getinfo()
             if typ not in self.type:
-                if not self.table.KindOf(typ)=='class':
+                #if not self.table.KindOf(typ)=='class':
+                if not self.gettag() == "IDENTIFIER":
                     raise Exception("Invalid type of: %s"%(self.peek()))                      
 
             varName=self.getNextToken('IDENTIFIER',False)

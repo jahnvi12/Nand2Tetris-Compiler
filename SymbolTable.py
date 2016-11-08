@@ -24,14 +24,14 @@ class SymbolTable:
         elif kind == 'field':
             self.class_scope[name] = (type, 'field' , self.field_count)
             self.field_count += 1
-        elif kind == 'class':
-            self.class_scope[name] = (type, 'class' , 0)
         elif kind == 'argument':
             self.subroutine_scope[name] = (type, 'argument' , self.arg_count)
             self.arg_count += 1
         elif kind == 'local':
             self.subroutine_scope[name] = (type, 'local' , self.var_count)
             self.var_count += 1
+        else:
+            self.class_scope[name] = (type, kind, 0)
 
       def VarCount(self, kind):
         if kind == 'argument':
