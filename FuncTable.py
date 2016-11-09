@@ -51,10 +51,10 @@ class FuncTable:
         self.adddecfn("Sys","error")
         self.adddecfn("Sys","wait")
 
-    def adddecfn(self,fclass,fname):
+    def adddecfn(self, fclass, fname):
         self.decfnlist.append((fclass,fname))
 
-    def addundecfn(self,fclass,fname):
+    def addundecfn(self, fclass, fname):
         self.undecfnlist.append((fclass,fname))
 
     def removeundecfn(self,fclass,fname):

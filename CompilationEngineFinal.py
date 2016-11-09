@@ -2,11 +2,13 @@ vmcode={'=':'eq','+':'add','-':'sub','&':'and','|':'or','~':'not','<':'lt','>':'
 
 class CompilationEngine(object):
 
-        def __init__(self,tokenizer,table,vm):
+        def __init__(self, tokenizer, table, vm, inpname, functable):
             self.tokenizer=tokenizer
             self.table=table
             self.vm=vm
             self.labelSuffix=0
+            self.classname = inpname
+            self.functable = functable
             self.type=['int','char','boolean']
             self.function=['constructor','function','method']
             self.getNextToken()
@@ -91,7 +93,7 @@ class CompilationEngine(object):
 
         def CompileSubroutine(self,className):
             print "Compiling Subroutine..."
-            kind=self.getinfo()
+            kind = self.getinfo()
             if kind not in self.function:
                 raise Exception('Illegal function kind: %s' %kind)
 
@@ -108,6 +110,8 @@ class CompilationEngine(object):
             self.getNextToken()
 
             name=self.getinfo()
+            self.functable.removeundecfn(self.classname, name)
+            self.functable.adddecfn(self.classname, name)
 
             if not self.gettag()=='IDENTIFIER':
                 raise Exception("Illegal identifier for function name: %s"%name)
@@ -213,7 +217,7 @@ class CompilationEngine(object):
 
             while not self.getinfo() == ';':
                 if self.getinfo() !=',':
-                    raise Exception("Comma expected in variable declaration")
+                    raise Exception(", or ; expected in variable declaration")
                 self.getNextToken()
                 varName = self.getinfo()
 
@@ -494,8 +498,11 @@ class CompilationEngine(object):
                 name = token
                 kind=self.table.KindOf(name)
                 if kind == None:
-                    raise Exception("Variable %s not defined in this scope" % name)
-                index=self.table.IndexOf(name)
+                    if self.peek() == '(':
+                        self.functable.addundecfn(self.classname, name)
+                    else:
+                        raise Exception("Variable %s not defined in this scope" % name)
+                index = self.table.IndexOf(name)
                 token = self.peek()
                 if token == '(':
                     #print token + ', ' + self.getinfo()
@@ -507,7 +514,7 @@ class CompilationEngine(object):
 
                     if not self.getinfo() == ')' :
                         raise Exception("Missing ) in function call for %s" % name)
-                    className = self.table.currClass()
+                    className = self.classname
                     self.vm.writeCall(className+'.'+name, nargs)
 
                 elif token == '.':

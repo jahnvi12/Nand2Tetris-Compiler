@@ -3,6 +3,7 @@ import JackTokenizer as jt
 import CompilationEngineFinal as ce 
 import SymbolTable as ST
 import VMWriter
+import FuncTable
 import sys 
 
 input=sys.argv[1]
@@ -19,10 +20,16 @@ elif os.path.isfile(input):
 else:
     raise Exception("Input should be either a file name or a directory name!")
 
+fntable = FuncTable.FuncTable()
+
 for file in fileList:
-    outFile=file.split('/')[-1].split('.')[0]+'.vm' 
+    inpname = file.split('/')[-1].split('.')[0]
+    outFile = inpname + '.vm' 
     tokenizer=jt.JackTokenizer(file)
     table = ST.SymbolTable()
     vm = VMWriter.VMWriter(outFile)
-    compiler=ce.CompilationEngine(tokenizer, table, vm)
+    compiler=ce.CompilationEngine(tokenizer, table, vm, inpname, fntable)
     compiler.CompileClass()
+    if not fntable.isemptyundec():
+        raise Exception("Undefined function(s) used in program!!!")
+
