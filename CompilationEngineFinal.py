@@ -101,8 +101,9 @@ class CompilationEngine(object):
             if typ not in self.type and not typ=='void':
                 if not self.table.KindOf(typ)=='class':
                     raise Exception("Invalid return type : %s"%typ)
-                elif kind=='constructor':
-                    raise Exception("Return type of constructor has to be class name!")
+                elif kind == 'constructor':
+                    if typ != className:
+                        raise Exception("Return type of constructor has to be class name!")
 
             self.getNextToken()
 
@@ -478,11 +479,13 @@ class CompilationEngine(object):
                         raise Exception("Missing ) in expression")
 
                 elif token in ['-','~']:
-                    self.compileTerm()
+                    self.getNextToken()
+                    self.CompileTerm()
                     if token == '-':
                         self.vm.writeArithmetic('neg')
                     else:
                         self.vm.writeArithmetic('not')
+                    return
                 else:
                     raise Exception('Unrecognized symbol: %s' %token)
 
@@ -490,6 +493,8 @@ class CompilationEngine(object):
                 nargs = 0
                 name = token
                 kind=self.table.KindOf(name)
+                if kind == None:
+                    raise Exception("Variable %s not defined in this scope" % name)
                 index=self.table.IndexOf(name)
                 token = self.peek()
                 if token == '(':
@@ -533,10 +538,12 @@ class CompilationEngine(object):
                     self.vm.writeCall('%s.%s' %(token_tag,function), nargs)    
 
                 elif token == '[':
+                    type = self.table.TypeOf(self.getinfo())
+                    if type != "Array" and type != "String":
+                        raise Exception("Accessing %s variable %s like Array element"%(type, name))
                     self.getNextToken()
                     self.getNextToken()
                     self.CompileExpression()
-                    self.getNextToken()
                     if not self.getinfo() == ']':
                         raise Exception("Missing ] in array element %s" % name)
                     self.vm.writePush(kind,index)
