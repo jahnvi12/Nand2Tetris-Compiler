@@ -157,36 +157,39 @@ class CompilationEngine(object):
 
 
         def CompileParameterList(self,routine):
-            #print self.gettag()
-            kind='argument'
-            if routine=='method':
+            #print self.getinfo()
+            kind = 'argument'
+            if routine == 'method':
                 self.table.Define('this',None,kind)
 
             if self.getinfo()==')':
                 return
 
             typ=self.getinfo()
+
             if typ not in self.type:
                 #if not self.table.KindOf(typ)=='class':
                 if not self.gettag() == "IDENTIFIER":
-                    raise Exception("Invalid argument type of: %s"%(self.peek()))
-                self.getNextToken()
-                varName=self.getNextToken('IDENTIFIER',False)
-                self.table.Define(varName,typ,kind)
-                self.getNextToken()
+                    raise Exception("Invalid argument type of: %s"%(self.getinfo()))
+            self.getNextToken()
+            if not self.gettag() == "IDENTIFIER":
+                raise Exception("Invalid argument type of: %s"%(self.getinfo()))
+            self.table.Define(self.getinfo(), typ, kind)
+            self.getNextToken()
 
             while not self.getinfo() == ')':
                 if self.getinfo() != ',':
-                    raise Exception("Illegal identifier %s"%(self.getinfo()))
+                    raise Exception("Missing , before %s"%(self.getinfo()))
                 self.getNextToken()
                 typ=self.getinfo()
                 if typ not in self.type:
                     if not self.table.KindOf(typ)=='class':
                         raise Exception("Invalid argument type of: %s"%(self.peek()))
-                    self.getNextToken()
-                    varName=self.getNextToken('IDENTIFIER',False)
-                    self.table.Define(varName,typ,kind)
-                    self.getNextToken()
+                self.getNextToken()
+                if not self.gettag() == "IDENTIFIER":
+                    raise Exception("Invalid argument type of: %s"%(self.getinfo()))
+                self.table.Define(self.getinfo(), typ, kind)
+                self.getNextToken()
 
         def CompileVarDec(self):
             print "Compiling Variable Declaration Statement..."
@@ -335,15 +338,13 @@ class CompilationEngine(object):
 
 
         def CompileDo(self):
-            if not self.getinfo()=='do':
-                print ('Missing do in line ')
-
             self.getNextToken()
-
             self.CompileTerm()
+
             self.vm.writePop('temp',0)		
+
             if self.getinfo() !=';' :
-                raise Exception("Comma Expected")
+                raise Exception("Missing ; in do statement")
 
             self.getNextToken()
 
@@ -387,24 +388,29 @@ class CompilationEngine(object):
             self.getNextToken()
 
         def CompileReturn(self):
-            if(self.getinfo()!='return'):
-                raise Exception('Missing return in line '+str(self.getlineno()))
-
             self.getNextToken()
 
-            if(self.getinfo()!=';'):
+            if self.getinfo()!=';' :
                 self.CompileExpression()
+
             else:
                 self.vm.writePush('constant',0)
 
-            if(self.getinfo()!=';'):
-                raise Exception('Missing ; in line ')
+            if self.getinfo()!=';' :
+                raise Exception('Missing ; in return statement ')
             self.vm.writeReturn()
 
             self.getNextToken()
 
         def CompileExpression(self):
-            self.CompileTerm()
+            if self.getinfo == '(':
+                self.getNextToken()
+                self.CompileExpression()
+                if self.getNextToken() != ')':
+                    raise Exception('Missing ) in expression')
+
+            else:
+                self.CompileTerm()
 
             while(self.getinfo() in '+-*/&|<>='):
                 token=self.getinfo()
@@ -425,97 +431,123 @@ class CompilationEngine(object):
 
             while not self.getinfo() == ')': 
                 if self.getinfo()!=',':
-                    raise Exception("Comma expected")
+                    raise Exception("Missing , in expression list")
                 nargs=nargs+1
                 self.CompileExpression()
-                return nargs
+            self.getNextToken()
+            return nargs
 
         def CompileTerm(self):
-		#self.outfile.write("locha ithe 2\n\n");
+            #self.outfile.write("locha ithe 2\n\n");
 
-		#specs:
-		#in case eof is encountere mid execution, returns -1.
-		#else returns something else. same value as getnextline()
-		#incase somewhere error is there, then that particular term is not printed.
-		#the presentline is expected to hold the token from which the analysis is to start.
-		token_tag = self.gettag()
-                token = self.getinfo()
+            #specs:
+            #in case eof is encountere mid execution, returns -1.
+            #else returns something else. same value as getnextline()
+            #incase somewhere error is there, then that particular term is not printed.
+            #the presentline is expected to hold the token from which the analysis is to start.
+            token_tag = self.gettag()
+            token = self.getinfo()
 
-                if token_tag == "INT_CONST":
-                    self.vm.writePush('constant', self.tokenizer.intVal())
+            #print self.getinfo()
+            if token_tag == "INT_CONST":
+                self.vm.writePush('constant', self.tokenizer.intVal())
 
-                elif token_tag == 'STRING_CONST':
-                    self.vm.writePush('constant', len(token))          
-                    self.vm.writeCall('String.new', 1)               
-                    for char in token:
-                        self.vm.writePush('constant', ord(char))   
-                        self.vm.writeCall('String.appendChar',2)            
+            elif token_tag == 'STRING_CONST':
+                self.vm.writePush('constant', len(token))          
+                self.vm.writeCall('String.new', 1)               
+                for char in token:
+                    self.vm.writePush('constant', ord(char))   
+                    self.vm.writeCall('String.appendChar', 2)            
 
-                elif token_tag == 'KEYWORD':
-                    if token in ['false','null']:
-                        self.vm.writePush('constant',0)
-                    elif token == 'true':
-                        self.vm.writePush('constant',0)
+            elif token_tag == 'KEYWORD':
+                if token in ['false','null']:
+                    self.vm.writePush('constant', 0)
+                elif token == 'true':
+                    self.vm.writePush('constant', 0)
+                    self.vm.writeArithmetic('not')
+                elif token == 'this':
+                    self.vm.writePush('pointer', 0)             
+                else:
+                    raise Exception('Unrecognized keyword: %s' %token)
+
+            elif token_tag == 'SYMBOL':
+                if token == '(':
+                    self.getNextToken()
+                    self.CompileExpression()
+                    if self.getinfo() != ')':
+                        raise Exception("Missing ) in expression")
+
+                elif token in ['-','~']:
+                    self.compileTerm()
+                    if token == '-':
+                        self.vm.writeArithmetic('neg')
+                    else:
                         self.vm.writeArithmetic('not')
-                    elif token == 'this':
-                        self.vm.writePush('pointer',0)             
-                    else:
-                        raise Exception('Unrecognized keyword: %s' %token)
+                else:
+                    raise Exception('Unrecognized symbol: %s' %token)
 
-                elif token_tag == 'SYMBOL':
-                    if token == '(':
-                        self.compileExpression()
-                        self.getNextToken(')',True)
-                    elif token in ['-','~']:
-                        self.compileTerm()
-                        if token == '-':
-                            self.vm.writeArithmetic('neg')
-                        else:
-                            self.vm.writeArithmetic('not')
-                    else:
-                        raise Exception('Unrecognized symbol: %s' %token)
+            elif token_tag == 'IDENTIFIER':
+                nargs = 0
+                name = token
+                kind=self.table.KindOf(name)
+                index=self.table.IndexOf(name)
+                token = self.peek()
+                if token == '(':
+                    #print token + ', ' + self.getinfo()
+                    self.vm.writePush('pointer',0) 
+                    self.getNextToken()
+                    self.getNextToken()
+                    #print self.getinfo()
+                    nargs= self.CompileExpressionList()+1
 
-                elif token_tag == 'IDENTIFIER':
-                    nargs = 0
-                    name = token
-                    kind=self.table.KindOf(name)
-                    index=self.table.IndexOf(name)
-                    token = self.peek()
-                    if token == '(':
-                        self.vm.writePush('pointer',0) 
-                        self.getNextToken('(',True)
-                        nargs= self.compileExpressionList()+1
-                        self.getNextToken(')',True)
-                        className = self.table.currClass()
-                        self.vm.writeCall(className+'$'+name,nargs)
+                    if not self.getinfo() == ')' :
+                        raise Exception("Missing ) in function call for %s" % name)
+                    className = self.table.currClass()
+                    self.vm.writeCall(className+'.'+name, nargs)
 
-                    elif token == '.':
-                        nargs=0    
-                        self.getNextToken('.',True)
-                        function = self.getNextToken('IDENTIFIER',False)
-                        if kind in ('field','local','static'): 
-                            self.vm.writePush(kind,index)
-                            nargs=1
-                            self.getNextToken('(',True)
-                            nargs+=self.compileExpressionList()
-                            self.getNextToken(')',True)                
-                            token_tag = self.table.TypeOf(name)
-                            if token_tag == None: 
-                                token_tag = name 
-                                self.vm.writeCall('%s$%s' %(token_tag,function),count)    
-                            elif token == '[':
-                                self.getNextToken('[',True)
-                                self.compileExpression()
-                                self.getNextToken(']',True)
-                                self.vm.writePush(kind,index)
-                                self.vm.writeArithmetic('add')  
-                                self.vm.writePop('pointer',1)
-                                self.vm.writePush('that',0)
-                            else:
-                                self.vm.writePush(kind,index)
-                        else:
-                            raise Exception('Illegal Token: %s' %(token))
-                self.getNextToken()
+                elif token == '.':
+                    nargs=0    
+                    self.getNextToken()
+                    self.getNextToken()
+                    function = self.getinfo()
+                    if not self.gettag() == "IDENTIFIER":
+                        raise Exception("Invalid function name of object %s" % name)
+
+                    # Check if used for object or class
+                    if kind in ('field','local','static'): 
+                        self.vm.writePush(kind,index)
+                        nargs=1
+                    self.getNextToken()
+                    if not self.getinfo() == '(':
+                        raise Exception("Missing ( in function call for %s" % function)
+                    self.getNextToken()
+
+                    nargs+=self.CompileExpressionList()
+                    if not self.getinfo() == ')':
+                        raise Exception("Missing ) in function call for %s" % function)
+
+                    token_tag = self.table.TypeOf(name)
+
+                    if token_tag == None: 
+                        token_tag = name 
+                    self.vm.writeCall('%s.%s' %(token_tag,function), nargs)    
+
+                elif token == '[':
+                    self.getNextToken()
+                    self.getNextToken()
+                    self.CompileExpression()
+                    self.getNextToken()
+                    if not self.getinfo() == ']':
+                        raise Exception("Missing ] in array element %s" % name)
+                    self.vm.writePush(kind,index)
+                    self.vm.writeArithmetic('add')  
+                    self.vm.writePop('pointer',1)
+                    self.vm.writePush('that',0)
+                else:
+                    self.vm.writePush(kind,index)
+            else:
+                raise Exception('Illegal Token: %s' %(token))
+            self.getNextToken()
 
 '''
 def CompileTerm(self):
