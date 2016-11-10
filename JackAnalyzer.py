@@ -28,10 +28,11 @@ for file in fileList:
     tokenizer=jt.JackTokenizer(file)
     table = ST.SymbolTable()
     vm = VMWriter.VMWriter(outFile)
+    print "Compiling {0}".format(inpname)
     compiler=ce.CompilationEngine(tokenizer, table, vm, inpname, fntable)
     compiler.CompileClass()
 
 if not fntable.isemptyundec():
-    print fntable.undecfnlist
-    raise Exception("Undefined function(s) used in program!!!")
+    for (a, b) in fntable.undecfnlist:
+        raise Exception("Undefined function {0} in {1} class".format(b, a))
 

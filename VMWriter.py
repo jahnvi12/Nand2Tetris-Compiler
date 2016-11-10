@@ -8,14 +8,14 @@ class VMWriter(object):
         def writePush(self, segment, index):
             if segment == "field":
                 self.vm.write('push this %d\n' %(index)) 
-
-            self.vm.write('push %s %d\n' %(segment, index)) 
+            else:
+                self.vm.write('push %s %d\n' %(segment, index)) 
 
         def writePop(self, segment, index):
             if segment == "field":
                 self.vm.write('pop this %d\n' %(index)) 
-
-            self.vm.write('pop %s %d\n' %(segment, index)) 
+            else:
+                self.vm.write('pop %s %d\n' %(segment, index)) 
 
         def writeArithmetic(self, command):
             self.vm.write(command.lower()+'\n')

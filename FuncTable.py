@@ -41,6 +41,7 @@ class FuncTable:
         self.adddecfn("Keyboard","keyPressed")
         self.adddecfn("Keyboard","readChar")
         self.adddecfn("Keyboard","readLine")
+        self.adddecfn("Keyboard","readInt")
         self.adddecfn("Memory","peek")
         self.adddecfn("Memory","init")
         self.adddecfn("Memory","poke")
@@ -60,7 +61,7 @@ class FuncTable:
     def removeundecfn(self,fclass,fname):
         for i in self.undecfnlist:
             if fclass==i[0] and fname==i[1]:
-                    self.undecfnlist.remove((fclass,fname))
+                self.undecfnlist.remove((fclass,fname))
 
     def isemptyundec(self):
         if len(self.undecfnlist)==0:
