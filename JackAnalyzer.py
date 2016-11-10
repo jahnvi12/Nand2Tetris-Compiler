@@ -30,6 +30,8 @@ for file in fileList:
     vm = VMWriter.VMWriter(outFile)
     compiler=ce.CompilationEngine(tokenizer, table, vm, inpname, fntable)
     compiler.CompileClass()
-    if not fntable.isemptyundec():
-        raise Exception("Undefined function(s) used in program!!!")
+
+if not fntable.isemptyundec():
+    print fntable.undecfnlist
+    raise Exception("Undefined function(s) used in program!!!")
 

@@ -437,9 +437,9 @@ class CompilationEngine(object):
             while not self.getinfo() == ')': 
                 if self.getinfo()!=',':
                     raise Exception("Missing , in expression list")
+                self.getNextToken()
                 nargs=nargs+1
                 self.CompileExpression()
-            self.getNextToken()
             return nargs
 
         def CompileTerm(self):
@@ -497,11 +497,14 @@ class CompilationEngine(object):
                 nargs = 0
                 name = token
                 kind=self.table.KindOf(name)
-                if kind == None:
+                flag = 0
+                for (a, b) in self.functable.decfnlist:
+                    if b == name:
+                        flag = 1
+                if not flag:
                     if self.peek() == '(':
                         self.functable.addundecfn(self.classname, name)
-                    else:
-                        raise Exception("Variable %s not defined in this scope" % name)
+
                 index = self.table.IndexOf(name)
                 token = self.peek()
                 if token == '(':
