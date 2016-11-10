@@ -147,9 +147,9 @@ class CompilationEngine(object):
             self.vm.writePush('constant',size)
             self.vm.writeCall('Memory.alloc',1) 
             self.vm.writePop('pointer',0)
-            if kind=='method':
-                self.vm.writePush('argument',0) 
-                self.vm.writePop('pointer',0) 
+        elif kind=='method':
+            self.vm.writePush('argument',0) 
+            self.vm.writePop('pointer',0) 
 
         #print self.getinfo()
         self.CompileStatements()
