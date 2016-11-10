@@ -100,8 +100,8 @@ class CompilationEngine(object):
         self.getNextToken()
 
         typ=self.getinfo()
-        if typ not in self.type and not typ=='void':
-            if not self.table.KindOf(typ)=='class':
+        if typ not in self.type and not typ == 'void':
+            if not self.table.KindOf(typ) == 'class':
                 raise Exception("Invalid return type : %s"%typ)
             elif kind == 'constructor':
                 if typ != className:
@@ -464,6 +464,7 @@ class CompilationEngine(object):
             self.vm.writePush('constant', self.tokenizer.intVal())
 
         elif token_tag == 'STRING_CONST':
+            token = self.tokenizer.stringVal()
             self.vm.writePush('constant', len(token))          
             self.vm.writeCall('String.new', 1)               
             for char in token:
