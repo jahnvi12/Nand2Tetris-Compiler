@@ -28,8 +28,11 @@ class JackTokenizer(object):
 			return 'KEYWORD'
 		elif self.token in symbols:
 			return 'SYMBOL'
-		elif self.token.isdigit() and int(self.token)>=0 and int(self.token)<=32767: 
+                elif self.token.isdigit():
+                    if int(self.token)>=0 and int(self.token)<=32767: 
 			return 'INT_CONST'
+                    else:
+                        raise Exception('Integer constant should be between 0 and 32767, it is %s' % self.token)
 		elif re.match(r'(?:"[^"]*")',self.token):
 			return 'STRING_CONST'
 		elif re.match(r'^[\w\d_]*$',self.token) and not self.token[0].isdigit() and self.token not in keywords:
