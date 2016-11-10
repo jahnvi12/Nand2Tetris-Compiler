@@ -56,7 +56,9 @@ class FuncTable:
         self.decfnlist.append((fclass,fname))
 
     def addundecfn(self, fclass, fname):
-        self.undecfnlist.append((fclass,fname))
+        tup = (fclass, fname)
+        if self.undecfnlist.count(tup) != 0:
+            self.undecfnlist.append((fclass,fname))
 
     def removeundecfn(self,fclass,fname):
         for i in self.undecfnlist:

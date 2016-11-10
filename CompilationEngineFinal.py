@@ -110,8 +110,6 @@ class CompilationEngine(object):
         self.getNextToken()
 
         name=self.getinfo()
-        if ('SquareGame', 'moveSquare') in self.functable.decfnlist:
-            print "Yes"
         self.functable.removeundecfn(self.classname, name)
         self.functable.adddecfn(self.classname, name)
 
@@ -537,7 +535,10 @@ class CompilationEngine(object):
                     if b == self.getinfo():
                         flag = 1
                 if not flag:
-                    self.functable.addundecfn(self.table.TypeOf(name), self.getinfo())
+                    if kind in ('field','local','static'): 
+                        self.functable.addundecfn(self.table.TypeOf(name), self.getinfo())
+                    else:
+                        self.functable.addundecfn(name, self.getinfo())
 
                 # Check if used for object or class
                 if kind in ('field','local','static'): 
