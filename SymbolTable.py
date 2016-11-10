@@ -12,11 +12,6 @@ class SymbolTable:
         self.arg_count = 0
         self.var_count = 0
 
-      def currClass(self):
-        for key,values in self.class_scope.items():
-          if 'class' in values:
-            return key
-
       def Define(self, name, type, kind):
         if kind == 'static':
             self.class_scope[name] = (type, 'static' , self.static_count)
